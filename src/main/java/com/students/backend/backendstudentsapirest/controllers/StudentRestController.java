@@ -12,6 +12,9 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -113,7 +116,23 @@ public class StudentRestController {
             return new ResponseEntity<Map<String, Object>>(response, HttpStatus.INTERNAL_SERVER_ERROR);
         }
         response.put("mensaje", "El estudiante se ha actualizado con exito");
-        response.put("cliente", studentUpdated);
+        response.put("student", studentUpdated);
         return new ResponseEntity<Map<String, Object>>(response, HttpStatus.CREATED);
+    }
+
+    @DeleteMapping("/students/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public ResponseEntity<?> delete(@PathVariable Long id) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            Student student = studentService.findById(id);
+            studentService.delete(id);
+        } catch (DataAccessException dataAccessException) {
+            response.put("mensaje", "Error en la base de datos");
+            response.put("error", dataAccessException.getMessage().concat(": ").concat(dataAccessException.getMostSpecificCause().getMessage()));
+            return new ResponseEntity<Map<String, Object>>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        response.put("mensaje", "El estudiante se ha eliminado con exito");
+        return new ResponseEntity<Map<String, Object>>(response, HttpStatus.OK);
     }
 }
