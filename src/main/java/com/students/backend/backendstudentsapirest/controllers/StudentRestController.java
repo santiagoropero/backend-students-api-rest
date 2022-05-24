@@ -32,6 +32,24 @@ public class StudentRestController {
         return studentService.findAll();
     }
 
+    @GetMapping("/students/{id}")
+    public ResponseEntity<?> show(@PathVariable Long id) {
+        Student student = null;
+        Map<String, Object> response = new HashMap<>();
+        try {
+            student = studentService.findById(id);
+        } catch (DataAccessException exception) {
+            response.put("mensaje", "Error en la base de datos");
+            response.put("error", exception.getMessage().concat(": ").concat(exception.getMostSpecificCause().getMessage()));
+            return new ResponseEntity<Map<String, Object>>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        if (student == null) {
+            response.put("mensaje", "El estudiante ID: ".concat(id.toString().concat(" no existe en la base de datos")));
+            return new ResponseEntity<Map<String, Object>>(response, HttpStatus.NOT_FOUND);
+        }
+        return new ResponseEntity<Student>(student, HttpStatus.OK);
+    }
+
     @PostMapping("/students")
     @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<?> save(@Valid @RequestBody Student student, BindingResult result) {
@@ -56,8 +74,46 @@ public class StudentRestController {
             response.put("error", dataAccessException.getMessage().concat(": ").concat(dataAccessException.getMostSpecificCause().getMessage()));
             return new ResponseEntity<Map<String, Object>>(response, HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        response.put("mensaje", "El cliente se ha creado con exito");
-        response.put("cliente", newCliente);
+        response.put("mensaje", "El estudiante se ha creado con exito");
+        response.put("student", newCliente);
+        return new ResponseEntity<Map<String, Object>>(response, HttpStatus.CREATED);
+    }
+
+    @PutMapping("/students/{id}")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ResponseEntity<?> update(@Valid @RequestBody Student student, BindingResult result, @PathVariable Long id) {
+        Student studentActual = studentService.findById(id);
+        Student studentUpdated = null;
+        Map<String, Object> response = new HashMap<>();
+
+        if (result.hasErrors()) {
+//            List<String> errores = new ArrayList();
+//            for (FieldError error: result.getFieldErrors()) {
+//                errores.add("El campo" + "'" + error.getField() + "'" + error.getDefaultMessage());
+//            }
+            List<String> errores = result.getFieldErrors()
+                    .stream()
+                    .map(fieldError -> "El campo" + "'" + fieldError.getField() + "'" + fieldError.getDefaultMessage())
+                    .collect(Collectors.toList());
+            response.put("errors", errores);
+            return new ResponseEntity<Map<String, Object>>(response, HttpStatus.BAD_REQUEST);
+        }
+
+        try {
+            studentActual.setTipoDocumento(student.getTipoDocumento());
+            studentActual.setDocumento(student.getDocumento());
+            studentActual.setApellido(student.getApellido());
+            studentActual.setNombre(student.getNombre());
+            studentActual.setCurso(student.getCurso());
+            studentActual.setJornada(student.getJornada());
+            studentUpdated = studentService.save(studentActual);
+        } catch (DataAccessException dataAccessException) {
+            response.put("mensaje", "Error en la base de datos");
+            response.put("error", dataAccessException.getMessage().concat(": ").concat(dataAccessException.getMostSpecificCause().getMessage()));
+            return new ResponseEntity<Map<String, Object>>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        response.put("mensaje", "El estudiante se ha actualizado con exito");
+        response.put("cliente", studentUpdated);
         return new ResponseEntity<Map<String, Object>>(response, HttpStatus.CREATED);
     }
 }
